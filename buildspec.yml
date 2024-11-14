@@ -6,7 +6,7 @@ env:
     AWS_ACCOUNT_ID: "361769585400"
     ECR_REPO_NAME: "repository"
     ECR_IMAGE_TAG: "latest"
-$CODEBUILD_RESOLVED_SOURCE_VERSION
+
 phases:
   install:
     commands:
