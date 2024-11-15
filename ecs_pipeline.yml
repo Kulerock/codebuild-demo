@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Stack to deploy ECS Service with Docker image from ECR
+
+Parameters:
+  Environment:
+    Type: String
+    Default: Prod
+
+Resources:
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  ECSCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: CFNCluster
+
+  myLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/ecs/fargate-task-definition"
+      RetentionInDays: 7
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: sample-fargate-app
+          Essential: true
+          Image: !ImportValue ECRRepositoryURI
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref myLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: ecs
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+          HealthCheck:
+            Command: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 90
+
+      Cpu: "256"
+      ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
+      Family: task-definition-cfn
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Security Group for ECS Service"
+      VpcId:
+        Fn::ImportValue: !Sub "${Environment}-VPC"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  ECSService:
+    Type: "AWS::ECS::Service"
+    Properties:
+      ServiceName: cfn-service
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref MySecurityGroup
+          Subnets:
+            - Fn::ImportValue: !Sub "${Environment}-PublicSubnetA"
+            - Fn::ImportValue: !Sub "${Environment}-PublicSubnetB"
+      TaskDefinition: !Ref ECSTaskDefinition
