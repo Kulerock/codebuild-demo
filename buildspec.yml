@@ -36,7 +36,7 @@ phases:
       - bash -c "if [ \"$CODEBUILD_BUILD_SUCCEEDING\" != \"1\" ]; then echo 'Build failed, stopping execution.'; exit 1; fi"
 
       - echo Triggering ECS stack deployment...
-      - aws cloudformation deploy --stack-name ecs --template-file ecs_pipeline.yml --capabilities CAPABILITY_IAM --parameter-overrides ECRRepositoryURI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME 
+      - aws cloudformation deploy --stack-name ecs --template-file ecs_pipeline.yml --capabilities CAPABILITY_IAM --parameter-overrides ECRRepositoryURI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME --debug
 
       - echo Сhecking deployment status...
       - bash -c 'aws cloudformation describe-stacks --stack-name ecs | grep -q "CREATE_COMPLETE" || { echo "Deployment failed"; exit 1; }'
