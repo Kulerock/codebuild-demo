@@ -23,11 +23,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
-  ECSCluster:
-    Type: "AWS::ECS::Cluster"
-    Properties:
-      ClusterName: CFNCluster
-
   myLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -57,7 +52,6 @@ Resources:
             Timeout: 5
             Retries: 3
             StartPeriod: 90
-
       Cpu: "256"
       ExecutionRoleArn: !GetAtt EcsTaskExecutionRole.Arn
       Family: task-definition-cfn
@@ -88,7 +82,8 @@ Resources:
     Type: "AWS::ECS::Service"
     Properties:
       ServiceName: cfn-service
-      Cluster: !Ref ECSCluster
+      Cluster:
+        Fn::ImportValue: !Join ["::", [!Ref Environment, "ECSClusterName"]]
       DesiredCount: 1
       LaunchType: FARGATE
       NetworkConfiguration:
