@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Stack to deploy ECS Service with Docker image from ECR
+Description: Stack to deploy ECS Service with Docker image from ECR.
 
 Parameters:
   Environment:
